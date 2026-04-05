@@ -253,8 +253,15 @@ function App() {
     const current = quizWords[currentIdx];
     if (choice === current.pos) {
       setCorrectCount(c => c + 1);
+      // Remove from review pool if answered correctly
+      setReviewPool(prev => prev.filter(w => w.word !== current.word));
     } else {
       setWrongWords(w => [...w, { ...current, yourAnswer: choice }]);
+      // Add to review pool if not already there
+      setReviewPool(prev => {
+        if (prev.some(w => w.word === current.word)) return prev;
+        return [...prev, current];
+      });
     }
   }, [selected, quizWords, currentIdx]);
 
@@ -434,12 +441,6 @@ function App() {
           <div className="result-btns">
             {wrongWords.length > 0 && (
               <button className="menu-btn" onClick={() => {
-                // Add to review pool (avoid duplicates)
-                setReviewPool(prev => {
-                  const existingWords = new Set(prev.map(w => w.word));
-                  const newWords = wrongWords.filter(w => !existingWords.has(w.word));
-                  return [...prev, ...newWords.map(({ yourAnswer, ...rest }) => rest)];
-                });
                 startQuiz(wrongWords.map(({ yourAnswer, ...rest }) => rest));
               }}>
                 間違えた {wrongWords.length} 問をやり直す
