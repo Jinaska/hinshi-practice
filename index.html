@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>品詞あてクイズ - TOEIC対策</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif; background: #f0f4f8; color: #222; }
+
+  .app { max-width: 560px; margin: 0 auto; padding: 16px; min-height: 100vh; }
+
+  /* ===== TOP SCREEN ===== */
+  .top { text-align: center; padding: 60px 20px 40px; }
+  .top h1 { font-size: 28px; font-weight: 800; margin-bottom: 6px; color: #1a3a5c; }
+  .top .sub { font-size: 14px; color: #777; margin-bottom: 40px; }
+  .menu-btn {
+    display: block; width: 100%; padding: 18px; margin-bottom: 14px;
+    font-size: 17px; font-weight: 700; border: 2px solid #2563eb; border-radius: 12px;
+    background: #fff; color: #2563eb; cursor: pointer; transition: all 0.15s;
+  }
+  .menu-btn:hover { background: #2563eb; color: #fff; }
+  .menu-btn:active { transform: scale(0.97); }
+  .menu-btn.review { border-color: #e67e22; color: #e67e22; }
+  .menu-btn.review:hover { background: #e67e22; color: #fff; }
+  .badge { display: inline-block; background: #e67e22; color: #fff; font-size: 12px; padding: 2px 8px; border-radius: 10px; margin-left: 6px; font-weight: 600; }
+
+  /* ===== HEADER BAR ===== */
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; margin-bottom: 8px; border-bottom: 2px solid #d0dbe8; }
+  .header .back { font-size: 14px; background: none; border: none; cursor: pointer; color: #555; font-weight: 600; }
+  .header .back:hover { color: #000; }
+  .header .title { font-size: 15px; font-weight: 700; }
+  .header .count { font-size: 13px; color: #888; }
+
+  /* ===== PROGRESS ===== */
+  .progress-bar { height: 6px; background: #e0e0e0; border-radius: 3px; margin-bottom: 28px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #2563eb, #38bdf8); border-radius: 3px; transition: width 0.4s ease; }
+
+  /* ===== QUESTION CARD ===== */
+  .card { background: #fff; border-radius: 16px; padding: 32px 24px; box-shadow: 0 4px 16px rgba(37,99,235,0.08); text-align: center; margin-bottom: 20px; border-top: 4px solid #2563eb; }
+  .word { font-size: 36px; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 8px; color: #1a3a5c; }
+  .meaning { font-size: 15px; color: #999; margin-bottom: 4px; min-height: 22px; }
+  .suffix-hint { font-size: 13px; color: #aaa; margin-bottom: 0; }
+
+  /* ===== CHOICES ===== */
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .choice-btn {
+    padding: 16px 8px; font-size: 17px; font-weight: 700; border: 2px solid #ccc;
+    border-radius: 12px; background: #fff; cursor: pointer; transition: all 0.15s;
+  }
+  .choice-btn:hover:not(:disabled) { border-color: #222; background: #fafafa; }
+  .choice-btn:active:not(:disabled) { transform: scale(0.96); }
+  .choice-btn:disabled { cursor: default; }
+  .choice-btn.correct { border-color: #16a34a; background: #16a34a; color: #fff; }
+  .choice-btn.wrong { border-color: #ef4444; background: #fef2f2; color: #ef4444; text-decoration: line-through; }
+  .choice-btn.reveal { border-color: #222; background: #e8e8e8; color: #222; }
+
+  /* ===== EXPLANATION ===== */
+  .explanation {
+    background: #f8fafc; border: 1px solid #d0dbe8; border-radius: 12px;
+    padding: 20px; margin-bottom: 16px; text-align: left;
+  }
+  .explanation.correct-exp { border-left: 4px solid #16a34a; }
+  .explanation.wrong-exp { border-left: 4px solid #ef4444; }
+  .explanation .exp-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .explanation .exp-label.correct-label { color: #16a34a; }
+  .explanation .exp-label.wrong-label { color: #ef4444; }
+  .explanation .exp-word { font-size: 18px; font-weight: 700; margin-bottom: 4px; color: #1a3a5c; }
+  .explanation .exp-meaning { font-size: 15px; color: #555; margin-bottom: 10px; }
+  .explanation .exp-detail { font-size: 14px; color: #666; line-height: 1.7; }
+  .explanation .exp-suffix { display: inline-block; background: #e0ecff; color: #2563eb; padding: 2px 8px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-top: 6px; }
+
+  /* ===== NEXT BUTTON ===== */
+  .next-btn {
+    display: block; width: 100%; padding: 16px; font-size: 16px; font-weight: 700;
+    border: none; border-radius: 12px; background: #2563eb; color: #fff; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .next-btn:hover { background: #1d4ed8; }
+  .next-btn:active { transform: scale(0.97); }
+
+  /* ===== RESULT SCREEN ===== */
+  .result { text-align: center; padding: 40px 20px; }
+  .result .score-circle {
+    width: 160px; height: 160px; border-radius: 50%; border: 6px solid #2563eb;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    margin: 0 auto 24px;
+  }
+  .result .score-num { font-size: 48px; font-weight: 800; color: #2563eb; }
+  .result .score-den { font-size: 14px; color: #888; }
+  .result h2 { font-size: 22px; margin-bottom: 8px; }
+  .result .msg { font-size: 15px; color: #666; margin-bottom: 32px; }
+  .result-btns { display: flex; flex-direction: column; gap: 12px; }
+
+  /* ===== WRONG LIST ===== */
+  .wrong-list { margin-top: 20px; }
+  .wrong-item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #fff; border: 1px solid #ddd; border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  .wrong-item .wi-word { font-size: 16px; font-weight: 700; }
+  .wrong-item .wi-meaning { font-size: 13px; color: #888; }
+  .wrong-item .wi-answer { font-size: 14px; font-weight: 600; background: #e0ecff; color: #2563eb; padding: 4px 10px; border-radius: 8px; }
+
+  /* ===== EMPTY STATE ===== */
+  .empty { text-align: center; padding: 60px 20px; color: #999; }
+  .empty .icon { font-size: 48px; margin-bottom: 16px; }
+  .empty p { font-size: 15px; }
+
+  /* ===== QUIZ SET SELECT ===== */
+  .set-select { padding: 20px 0; }
+  .set-select h2 { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+  .set-btn {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; padding: 18px 20px; margin-bottom: 12px;
+    font-size: 16px; font-weight: 600; border: 2px solid #d0dbe8; border-radius: 12px;
+    background: #fff; cursor: pointer; transition: all 0.15s; text-align: left;
+  }
+  .set-btn:hover { border-color: #2563eb; background: #f0f5ff; }
+  .set-btn .set-info { font-size: 13px; color: #888; font-weight: 400; }
+
+  /* Animations */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.3s ease; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useCallback, useMemo } = React;
+
+// ===== WORD DATA (from ゼロからドリル Quiz 1-3) =====
+const ALL_WORDS = [
+  // Quiz 1
+  { word: "important", meaning: "重要な", pos: "形容詞", suffix: "-ant", quiz: 1 },
+  { word: "continuous", meaning: "連続の", pos: "形容詞", suffix: "-ous", quiz: 1 },
+  { word: "policy", meaning: "方針", pos: "名詞", suffix: "-cy", quiz: 1 },
+  { word: "demonstration", meaning: "実演", pos: "名詞", suffix: "-tion", quiz: 1 },
+  { word: "considerable", meaning: "かなりの", pos: "形容詞", suffix: "-able", quiz: 1 },
+  { word: "realistic", meaning: "現実的な", pos: "形容詞", suffix: "-ic", quiz: 1 },
+  { word: "effective", meaning: "効果的な", pos: "形容詞", suffix: "-ive", quiz: 1 },
+  { word: "responsibility", meaning: "責任", pos: "名詞", suffix: "-ity", quiz: 1 },
+  { word: "manufacturer", meaning: "メーカー", pos: "名詞", suffix: "-er", quiz: 1 },
+  { word: "additional", meaning: "追加の", pos: "形容詞", suffix: "-al", quiz: 1 },
+  { word: "happiness", meaning: "幸福", pos: "名詞", suffix: "-ness", quiz: 1 },
+  { word: "agreement", meaning: "同意", pos: "名詞", suffix: "-ment", quiz: 1 },
+  { word: "entrance", meaning: "入口", pos: "名詞", suffix: "-ance", quiz: 1 },
+  { word: "simplify", meaning: "簡単にする", pos: "動詞", suffix: "-fy", quiz: 1 },
+  { word: "discussion", meaning: "話し合い", pos: "名詞", suffix: "-sion", quiz: 1 },
+  { word: "inconvenience", meaning: "不便", pos: "名詞", suffix: "-ence", quiz: 1 },
+  { word: "widen", meaning: "広くする", pos: "動詞", suffix: "-en", quiz: 1 },
+  { word: "annually", meaning: "毎年", pos: "副詞", suffix: "-ly", quiz: 1 },
+  { word: "organize", meaning: "組織する", pos: "動詞", suffix: "-ize", quiz: 1 },
+  { word: "careful", meaning: "注意深い", pos: "形容詞", suffix: "-ful", quiz: 1 },
+  // Quiz 2
+  { word: "fluent", meaning: "流ちょうな", pos: "形容詞", suffix: "-ent", quiz: 2 },
+  { word: "safety", meaning: "安全", pos: "名詞", suffix: "-ty", quiz: 2 },
+  { word: "socialize", meaning: "交際する", pos: "動詞", suffix: "-ize", quiz: 2 },
+  { word: "distribution", meaning: "配布", pos: "名詞", suffix: "-tion", quiz: 2 },
+  { word: "available", meaning: "入手できる", pos: "形容詞", suffix: "-able", quiz: 2 },
+  { word: "business", meaning: "仕事", pos: "名詞", suffix: "-ness", quiz: 2 },
+  { word: "growth", meaning: "成長", pos: "名詞", suffix: "-th", quiz: 2 },
+  { word: "maintenance", meaning: "維持管理", pos: "名詞", suffix: "-ance", quiz: 2 },
+  { word: "audience", meaning: "観衆", pos: "名詞", suffix: "-ence", quiz: 2 },
+  { word: "decision", meaning: "決定", pos: "名詞", suffix: "-sion", quiz: 2 },
+  { word: "useful", meaning: "役に立つ", pos: "形容詞", suffix: "-ful", quiz: 2 },
+  { word: "agency", meaning: "代理店", pos: "名詞", suffix: "-cy", quiz: 2 },
+  { word: "competitive", meaning: "競争力のある", pos: "形容詞", suffix: "-ive", quiz: 2 },
+  { word: "variously", meaning: "さまざまに", pos: "副詞", suffix: "-ly", quiz: 2 },
+  { word: "generous", meaning: "気前のよい", pos: "形容詞", suffix: "-ous", quiz: 2 },
+  { word: "satisfy", meaning: "満足させる", pos: "動詞", suffix: "-fy", quiz: 2 },
+  { word: "economic", meaning: "経済の", pos: "形容詞", suffix: "-ic", quiz: 2 },
+  { word: "strengthen", meaning: "強化する", pos: "動詞", suffix: "-en", quiz: 2 },
+  { word: "communicate", meaning: "話し合う", pos: "動詞", suffix: "-ate", quiz: 2 },
+  // Quiz 3
+  { word: "attendance", meaning: "出席", pos: "名詞", suffix: "-ance", quiz: 3 },
+  { word: "preferable", meaning: "好ましい", pos: "形容詞", suffix: "-able", quiz: 3 },
+  { word: "opportunity", meaning: "機会", pos: "名詞", suffix: "-ity", quiz: 3 },
+  { word: "convenience", meaning: "便利", pos: "名詞", suffix: "-ence", quiz: 3 },
+  { word: "promotional", meaning: "販促の", pos: "形容詞", suffix: "-al", quiz: 3 },
+  { word: "production", meaning: "生産高", pos: "名詞", suffix: "-tion", quiz: 3 },
+  { word: "width", meaning: "幅", pos: "名詞", suffix: "-th", quiz: 3 },
+  { word: "qualify", meaning: "資格を与える", pos: "動詞", suffix: "-fy", quiz: 3 },
+  { word: "successful", meaning: "成功した", pos: "形容詞", suffix: "-ful", quiz: 3 },
+  { word: "innovative", meaning: "革新的な", pos: "形容詞", suffix: "-ive", quiz: 3 },
+  { word: "efficiency", meaning: "効率性", pos: "名詞", suffix: "-cy", quiz: 3 },
+  { word: "explanation", meaning: "説明", pos: "名詞", suffix: "-tion", quiz: 3 },
+  { word: "domestic", meaning: "国内の", pos: "形容詞", suffix: "-ic", quiz: 3 },
+  { word: "previous", meaning: "以前の", pos: "形容詞", suffix: "-ous", quiz: 3 },
+  { word: "specific", meaning: "特別な", pos: "形容詞", suffix: "-ic", quiz: 3 },
+  { word: "admission", meaning: "入場（料）", pos: "名詞", suffix: "-sion", quiz: 3 },
+  { word: "enclose", meaning: "同封する", pos: "動詞", suffix: "en-", quiz: 3 },
+  { word: "significantly", meaning: "著しく", pos: "副詞", suffix: "-ly", quiz: 3 },
+  { word: "educate", meaning: "教育する", pos: "動詞", suffix: "-ate", quiz: 3 },
+  { word: "realize", meaning: "実現する", pos: "動詞", suffix: "-ize", quiz: 3 },
+];
+
+const CHOICES = ["名詞", "形容詞", "副詞", "動詞"];
+
+const SUFFIX_RULES = {
+  "名詞": "-tion, -sion, -ment, -ness, -ity, -cy, -ance, -ence, -er, -th",
+  "形容詞": "-al, -able, -ful, -ive, -ous, -ic, -ent, -ant",
+  "副詞": "-ly",
+  "動詞": "-ize, -fy, -en, -ate",
+};
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function getEncouragement(ratio) {
+  if (ratio === 1) return "パーフェクト！素晴らしい！";
+  if (ratio >= 0.8) return "よくできました！この調子！";
+  if (ratio >= 0.6) return "いい感じ！間違えた問題を復習しよう！";
+  if (ratio >= 0.4) return "語尾のルールを確認して再挑戦！";
+  return "語尾の表をもう一度確認してみよう！";
+}
+
+// ===== MAIN APP =====
+function App() {
+  const [screen, setScreen] = useState("top"); // top, select, quiz, result, review
+  const [quizWords, setQuizWords] = useState([]);
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [wrongWords, setWrongWords] = useState([]);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [reviewPool, setReviewPool] = useState([]);
+
+  const startQuiz = useCallback((words) => {
+    setQuizWords(shuffle(words));
+    setCurrentIdx(0);
+    setSelected(null);
+    setWrongWords([]);
+    setCorrectCount(0);
+    setShowExplanation(false);
+    setScreen("quiz");
+  }, []);
+
+  const handleSelect = useCallback((choice) => {
+    if (selected !== null) return;
+    setSelected(choice);
+    setShowExplanation(true);
+    const current = quizWords[currentIdx];
+    if (choice === current.pos) {
+      setCorrectCount(c => c + 1);
+    } else {
+      setWrongWords(w => [...w, { ...current, yourAnswer: choice }]);
+    }
+  }, [selected, quizWords, currentIdx]);
+
+  const handleNext = useCallback(() => {
+    if (currentIdx + 1 >= quizWords.length) {
+      setScreen("result");
+    } else {
+      setCurrentIdx(i => i + 1);
+      setSelected(null);
+      setShowExplanation(false);
+    }
+  }, [currentIdx, quizWords.length]);
+
+  const goTop = useCallback(() => {
+    setScreen("top");
+    setSelected(null);
+    setShowExplanation(false);
+  }, []);
+
+  const startReview = useCallback(() => {
+    if (reviewPool.length === 0) return;
+    startQuiz(reviewPool);
+  }, [reviewPool, startQuiz]);
+
+  const currentWord = quizWords[currentIdx] || {};
+  const totalQ = quizWords.length;
+
+  // ===== TOP SCREEN =====
+  if (screen === "top") {
+    return (
+      <div className="app">
+        <div className="top fade-in">
+          <h1>品詞あてクイズ</h1>
+          <p className="sub">TOEIC 頻出単語で品詞力を鍛えよう</p>
+          <button className="menu-btn" onClick={() => setScreen("select")}>
+            クイズに挑戦する
+          </button>
+          <button className="menu-btn" onClick={() => startQuiz(ALL_WORDS)}>
+            全60問シャッフル
+          </button>
+          <button
+            className="menu-btn review"
+            onClick={startReview}
+            disabled={reviewPool.length === 0}
+            style={reviewPool.length === 0 ? { opacity: 0.4, cursor: 'default' } : {}}
+          >
+            復習モード
+            {reviewPool.length > 0 && <span className="badge">{reviewPool.length}問</span>}
+          </button>
+          {reviewPool.length === 0 && (
+            <p style={{ fontSize: 13, color: '#aaa', marginTop: 4 }}>間違えた問題がここに溜まります</p>
+          )}
+        </div>
+        <div style={{ padding: '24px 0 0', borderTop: '1px solid #eee', marginTop: 20 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#888', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>語尾の見分け方</p>
+          {Object.entries(SUFFIX_RULES).map(([pos, suffixes]) => (
+            <div key={pos} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <span style={{ fontWeight: 700, fontSize: 15 }}>{pos}</span>
+              <span style={{ fontSize: 13, color: '#888' }}>{suffixes}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ===== SET SELECT =====
+  if (screen === "select") {
+    const sets = [
+      { label: "Quiz 1", desc: "important, continuous, policy ...", filter: w => w.quiz === 1 },
+      { label: "Quiz 2", desc: "fluent, safety, socialize ...", filter: w => w.quiz === 2 },
+      { label: "Quiz 3", desc: "attendance, preferable, opportunity ...", filter: w => w.quiz === 3 },
+    ];
+    return (
+      <div className="app fade-in">
+        <div className="header">
+          <button className="back" onClick={goTop}>← 戻る</button>
+          <span className="title">セット選択</span>
+          <span></span>
+        </div>
+        <div className="set-select">
+          <h2>どのクイズに挑戦する？</h2>
+          {sets.map((s, i) => (
+            <button key={i} className="set-btn" onClick={() => startQuiz(ALL_WORDS.filter(s.filter))}>
+              <div>
+                <div style={{ fontWeight: 700 }}>{s.label}</div>
+                <div className="set-info">{s.desc}</div>
+              </div>
+              <span style={{ fontSize: 14, color: '#aaa' }}>20問 →</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ===== QUIZ SCREEN =====
+  if (screen === "quiz") {
+    const isCorrect = selected === currentWord.pos;
+    return (
+      <div className="app fade-in">
+        <div className="header">
+          <button className="back" onClick={goTop}>← やめる</button>
+          <span className="title">品詞あてクイズ</span>
+          <span className="count">{currentIdx + 1} / {totalQ}</span>
+        </div>
+        <div className="progress-bar">
+          <div className="progress-fill" style={{ width: `${((currentIdx + (selected !== null ? 1 : 0)) / totalQ) * 100}%` }} />
+        </div>
+
+        <div className="card" key={currentIdx}>
+          <div className="word">{currentWord.word}</div>
+          <div className="meaning">{showExplanation ? currentWord.meaning : ""}</div>
+        </div>
+
+        <div className="choices">
+          {CHOICES.map(c => {
+            let cls = "choice-btn";
+            if (selected !== null) {
+              if (c === currentWord.pos) cls += " correct";
+              else if (c === selected) cls += " wrong";
+            }
+            return (
+              <button key={c} className={cls} onClick={() => handleSelect(c)} disabled={selected !== null}>
+                {c}
+              </button>
+            );
+          })}
+        </div>
+
+        {showExplanation && (
+          <div className="fade-in">
+            <div className={`explanation ${isCorrect ? "correct-exp" : "wrong-exp"}`}>
+              <div className={`exp-label ${isCorrect ? "correct-label" : "wrong-label"}`}>{isCorrect ? "⭕ 正解！" : "❌ 不正解"}</div>
+              <div className="exp-word">{currentWord.word} = {currentWord.pos}</div>
+              <div className="exp-meaning">意味：{currentWord.meaning}</div>
+              <div className="exp-detail">
+                {currentWord.pos === "名詞" && "名詞は人・もの・ことを表す語。主語（S）や目的語（O）になります。"}
+                {currentWord.pos === "形容詞" && "形容詞は名詞を修飾する語。名詞の前か、be動詞の後に置きます。"}
+                {currentWord.pos === "副詞" && "副詞は動詞・形容詞・副詞・文全体を修飾する語。多くは -ly で終わります。"}
+                {currentWord.pos === "動詞" && "動詞は動作・状態を表す語。文の述語（V）になります。"}
+                <br/>
+                <span className="exp-suffix">語尾ヒント: {currentWord.suffix}</span>
+              </div>
+              {!isCorrect && (
+                <div style={{ marginTop: 10, fontSize: 13, color: '#999' }}>
+                  あなたの答え：{selected}
+                </div>
+              )}
+            </div>
+            <button className="next-btn" onClick={handleNext}>
+              {currentIdx + 1 >= totalQ ? "結果を見る" : "次の問題 →"}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ===== RESULT SCREEN =====
+  if (screen === "result") {
+    const ratio = totalQ > 0 ? correctCount / totalQ : 0;
+    return (
+      <div className="app fade-in">
+        <div className="header">
+          <button className="back" onClick={goTop}>← ホーム</button>
+          <span className="title">結果</span>
+          <span></span>
+        </div>
+        <div className="result">
+          <div className="score-circle">
+            <div className="score-num">{correctCount}</div>
+            <div className="score-den">/ {totalQ} 問正解</div>
+          </div>
+          <h2>{getEncouragement(ratio)}</h2>
+          <p className="msg">正答率：{Math.round(ratio * 100)}%</p>
+          <div className="result-btns">
+            {wrongWords.length > 0 && (
+              <button className="menu-btn" onClick={() => {
+                // Add to review pool (avoid duplicates)
+                setReviewPool(prev => {
+                  const existingWords = new Set(prev.map(w => w.word));
+                  const newWords = wrongWords.filter(w => !existingWords.has(w.word));
+                  return [...prev, ...newWords.map(({ yourAnswer, ...rest }) => rest)];
+                });
+                startQuiz(wrongWords.map(({ yourAnswer, ...rest }) => rest));
+              }}>
+                間違えた {wrongWords.length} 問をやり直す
+              </button>
+            )}
+            <button className="menu-btn" onClick={() => startQuiz(quizWords)}>もう一度同じセットに挑戦</button>
+            <button className="menu-btn review" onClick={goTop}>ホームに戻る</button>
+          </div>
+        </div>
+        {wrongWords.length > 0 && (
+          <div className="wrong-list">
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#888', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>間違えた単語</p>
+            {wrongWords.map((w, i) => (
+              <div key={i} className="wrong-item">
+                <div>
+                  <div className="wi-word">{w.word}</div>
+                  <div className="wi-meaning">{w.meaning}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div className="wi-answer">{w.pos}</div>
+                  <div style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>あなた: {w.yourAnswer}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return null;
+}
+
+ReactDOM.render(<App />, document.getElementById("root"));
+</script>
+</body>
+</html>
